@@ -1,16 +1,28 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:logging/logging.dart';
 import 'package:cli_config/cli_config.dart';
+import 'package:logging/logging.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
 import 'package:path/path.dart' as p;
 
+final IOSink buildLogs = () {
+  final logsFile = File.fromUri(
+    Platform.script.resolve('.dart_tool/build.log'),
+  );
+  logsFile.createSync(recursive: true);
+  return logsFile.openWrite(mode: FileMode.write);
+}();
+
 void main(List<String> args) async {
+  buildLogs.writeln('Starting sqlite3 build');
   final config = await BuildConfig.fromArgs(args);
+  buildLogs.writeln('Config: ${config.toYamlString()}');
   final script = SqliteBuildScript(config: config);
   await script.build();
+  await buildLogs.flush();
+  await buildLogs.close();
 }
 
 enum SqliteSource {
@@ -72,20 +84,27 @@ class SqliteBuildScript {
   SqliteBuildScript({required this.config})
       : options = SqliteBuildOptions.fromConfig(config.config),
         outDir = Directory.fromUri(config.outDir) {
-    logger.onRecord.listen(print);
+    logger.onRecord.listen(buildLogs.writeln);
   }
 
   Future<void> build() async {
+    logger.info('Creating output directory: ${outDir.path}');
     await outDir.create(recursive: true);
 
+    logger.info(
+      'Building sqlite3 with source=${options.source}, '
+      'url=${options.downloadUrl}',
+    );
     final builder = await _compileSqlite();
 
+    logger.info('Running builder');
     await builder.run(
       buildConfig: config,
       buildOutput: output,
       logger: logger,
     );
 
+    logger.info('Writing output: $output');
     await output.writeToFile(outDir: config.outDir);
   }
 
@@ -113,18 +132,9 @@ class SqliteBuildScript {
 
     // Extract source code into an intermediate file
     final sqlite3DotC = config.outDir.resolve('sqlite3.c');
-    late final writingToSqlite3DotC =
-        File(sqlite3DotC.toFilePath()).openWrite();
+    final writingToSqlite3DotC = File(sqlite3DotC.toFilePath()).openWrite();
     await writingToSqlite3DotC.addStream(sourceCode);
-
-    // Also add helper functions we need to work around current limitations in
-    // Dart's FFI system.
-    await File(config.packageRoot
-            .resolve('assets/dart_workarounds.c')
-            .toFilePath())
-        .openRead()
-        .pipe(writingToSqlite3DotC);
-    await writingToSqlite3DotC.done;
+    logger.info('Wrote sqlite3.c to ${sqlite3DotC.path}');
 
     return CBuilder.library(
       name: 'dart_sqlite3',
