@@ -201,7 +201,7 @@ class SqliteBuildScript {
   List<String> get _buildFlags {
     return [
       if (config.buildMode == BuildMode.release)
-        if (config.targetOs == OS.windows) '/02' else '-O3',
+        if (config.targetOs == OS.windows) '/O2' else '-O3',
 
       // todo: Make this work on all platforms
       if (options.source == SqliteSource.system) '-lsqlite3',
