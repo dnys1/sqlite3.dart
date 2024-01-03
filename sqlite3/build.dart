@@ -134,6 +134,8 @@ class SqliteBuildScript {
     final sqlite3DotC = config.outDir.resolve('sqlite3.c');
     final writingToSqlite3DotC = File(sqlite3DotC.toFilePath()).openWrite();
     await writingToSqlite3DotC.addStream(sourceCode);
+    await writingToSqlite3DotC.flush();
+    await writingToSqlite3DotC.close();
     logger.info('Wrote sqlite3.c to ${sqlite3DotC.path}');
 
     return CBuilder.library(
