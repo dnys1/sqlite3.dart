@@ -18,7 +18,6 @@ final IOSink buildLogs = () {
 void main(List<String> args) async {
   buildLogs.writeln('Starting sqlite3 build');
   final config = await BuildConfig.fromArgs(args);
-  buildLogs.writeln('Config: ${config.toYamlString()}');
   final script = SqliteBuildScript(config: config);
   await script.build();
   await buildLogs.flush();
