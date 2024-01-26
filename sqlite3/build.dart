@@ -18,7 +18,7 @@ final IOSink buildLogs = () {
 void main(List<String> args) async {
   buildLogs.writeln('Starting sqlite3 build');
   final config = await BuildConfig.fromArgs(args);
-  buildLogs.writeln('Config: ${config.toYamlString()}');
+  buildLogs.writeln('Config: $config');
   final script = SqliteBuildScript(config: config);
   await script.build();
   await buildLogs.flush();
@@ -186,7 +186,7 @@ class SqliteBuildScript {
         if (config.targetOs == OS.windows)
           // Actually export functions meant to be exported.
           'SQLITE_API': '__declspec(dllexport)',
-        if (config.buildMode == BuildMode.debug) ...{
+        if (!config.dryRun && config.buildMode == BuildMode.debug) ...{
           // Enable SQLite internal checks.
           'SQLITE_DEBUG': null,
           'SQLITE_MEMDEBUG': null,
@@ -202,7 +202,7 @@ class SqliteBuildScript {
 
   List<String> get _buildFlags {
     return [
-      if (config.buildMode == BuildMode.release)
+      if (!config.dryRun && config.buildMode == BuildMode.release)
         if (config.targetOs == OS.windows) '/O2' else '-O3',
 
       // todo: Make this work on all platforms
