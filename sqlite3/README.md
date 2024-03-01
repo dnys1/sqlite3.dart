@@ -97,10 +97,10 @@ To use this package on the web, you need:
 
 - The sqlite3 library compiled as a WebAssembly module, available from the
   [GitHub releases](https://github.com/simolus3/sqlite3.dart/releases) of this package.
-  Note thaat, for this package, __sqlite3 has to be compiled in a special way__.
+  Note that, for this package, __sqlite3 has to be compiled in a special way__.
   Existing WebAssembly files from e.g. sql.js will not work with `package:sqlite3/wasm.dart`.
 - A file system implementation, since websites can't by default access the host's file system.
- This package provides `FileSystem.inMemory()` and an `IndexedDbFileSystem` implementation.
+ This package provides `InMemoryFileSystem` and an `IndexedDbFileSystem` implementation.
 
 After putting `sqlite3.wasm` under the `web/` directory of your project, you can
 open and use `sqlite3` like this:
@@ -135,6 +135,17 @@ the FFI-based native version in `package:sqlite3/sqlite3.dart` and the experimen
 version in `package:sqlite3/wasm.dart`.
 By having shared code depend on the common interfaces, it can be used for both native and web
 apps.
+
+### Testing
+
+To run the tests of this package with wasm, either download the `sqlite3.wasm` file from the
+GitHub releases to `example/web` or compile it yourself (see [compiling](#compiling) below).
+
+To run tests on the Dart VM, Firefox and Chrome, use:
+
+```
+dart test -P full
+```
 
 ### Compiling
 

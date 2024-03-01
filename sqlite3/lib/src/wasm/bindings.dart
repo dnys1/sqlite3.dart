@@ -247,6 +247,11 @@ final class WasmDatabase extends RawSqliteDatabase {
   }
 
   @override
+  int sqlite3_get_autocommit() {
+    return bindings.sqlite3_get_autocommit(db);
+  }
+
+  @override
   int sqlite3_db_config(int op, int value) {
     return bindings.sqlite3_db_config(db, op, value);
   }
@@ -343,6 +348,16 @@ final class WasmStatement extends RawSqliteStatement {
   @override
   int sqlite3_bind_parameter_count() {
     return bindings.sqlite3_bind_parameter_count(stmt);
+  }
+
+  @override
+  int sqlite3_stmt_isexplain() {
+    return bindings.sqlite3_stmt_isexplain(stmt);
+  }
+
+  @override
+  int sqlite3_stmt_readonly() {
+    return bindings.sqlite3_stmt_readonly(stmt);
   }
 
   @override

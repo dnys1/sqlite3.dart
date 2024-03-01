@@ -77,7 +77,10 @@ class WasmBindings {
       _sqlite3_value_bytes,
       _sqlite3_value_text,
       _sqlite3_value_blob,
-      _sqlite3_aggregate_context;
+      _sqlite3_aggregate_context,
+      _sqlite3_get_autocommit,
+      _sqlite3_stmt_readonly,
+      _sqlite3_stmt_isexplain;
 
   final Function? _sqlite3_db_config;
 
@@ -152,6 +155,9 @@ class WasmBindings {
         _sqlite3_value_blob = instance.functions['sqlite3_value_blob']!,
         _sqlite3_aggregate_context =
             instance.functions['sqlite3_aggregate_context']!,
+        _sqlite3_get_autocommit = instance.functions['sqlite3_get_autocommit']!,
+        _sqlite3_stmt_isexplain = instance.functions['sqlite3_stmt_isexplain']!,
+        _sqlite3_stmt_readonly = instance.functions['sqlite3_stmt_readonly']!,
         _sqlite3_db_config = instance.functions['dart_sqlite3_db_config_int'],
         _sqlite3_temp_directory = instance.globals['sqlite3_temp_directory']! {
     values.bindings = this;
@@ -402,8 +408,16 @@ class WasmBindings {
 
   int sqlite3_changes(Pointer db) => _sqlite3_changes(db) as int;
 
+  int sqlite3_stmt_isexplain(Pointer stmt) =>
+      _sqlite3_stmt_isexplain(stmt) as int;
+
+  int sqlite3_stmt_readonly(Pointer stmt) =>
+      _sqlite3_stmt_readonly(stmt) as int;
+
   int sqlite3_last_insert_rowid(Pointer db) =>
       JsBigInt(_sqlite3_last_insert_rowid(db) as Object).asDartInt;
+
+  int sqlite3_get_autocommit(Pointer db) => _sqlite3_get_autocommit(db) as int;
 
   int sqlite3_db_config(Pointer db, int op, int value) {
     final function = _sqlite3_db_config;

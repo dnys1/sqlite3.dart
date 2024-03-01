@@ -129,6 +129,12 @@ external ffi.Pointer<ffi.Void> sqlite3_update_hook(
   ffi.Pointer<ffi.Void> arg2,
 );
 
+@ffi.Native<ffi.Int Function(ffi.Pointer<sqlite3>)>(
+    symbol: 'sqlite3_get_autocommit')
+external int sqlite3_get_autocommit(
+  ffi.Pointer<sqlite3> db,
+);
+
 @ffi.Native<
     ffi.Int Function(
         ffi.Pointer<sqlite3>,
@@ -175,6 +181,18 @@ external int sqlite3_step(
 @ffi.Native<ffi.Int Function(ffi.Pointer<sqlite3_stmt>)>(
     symbol: 'sqlite3_reset')
 external int sqlite3_reset(
+  ffi.Pointer<sqlite3_stmt> pStmt,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<sqlite3_stmt>)>(
+    symbol: 'sqlite3_stmt_isexplain')
+external int sqlite3_stmt_isexplain(
+  ffi.Pointer<sqlite3_stmt> pStmt,
+);
+
+@ffi.Native<ffi.Int Function(ffi.Pointer<sqlite3_stmt>)>(
+    symbol: 'sqlite3_stmt_readonly')
+external int sqlite3_stmt_readonly(
   ffi.Pointer<sqlite3_stmt> pStmt,
 );
 

@@ -7,7 +7,6 @@ import '../constants.dart';
 import '../functions.dart';
 import '../implementation/bindings.dart';
 import 'memory.dart';
-
 // the alias reduces the diff between the native-asset variant and main. It
 // should be removed once we move to natives exclusively.
 import 'sqlite3.g.dart' as bindings;
@@ -274,6 +273,11 @@ final class FfiDatabase extends RawSqliteDatabase {
   }
 
   @override
+  int sqlite3_get_autocommit() {
+    return bindings.sqlite3_get_autocommit(db);
+  }
+
+  @override
   RawStatementCompiler newCompiler(List<int> utf8EncodedSql) {
     return FfiStatementCompiler(this, allocateBytes(utf8EncodedSql));
   }
@@ -287,7 +291,8 @@ final class FfiDatabase extends RawSqliteDatabase {
     }
 
     final callable =
-        NativeCallable<Void Function(Pointer<Void>)>.isolateLocal(destroy);
+        NativeCallable<Void Function(Pointer<Void>)>.isolateLocal(destroy)
+          ..keepIsolateAlive = false;
     callables.add(callable);
 
     return callable.nativeFunction;
@@ -320,7 +325,7 @@ final class FfiStatementCompiler extends RawStatementCompiler {
     if (SupportedSqliteFeatures.features.supportsPrepareV3) {
       result = sqlite3_prepare_v3(
         database.db,
-        sql.elementAt(byteOffset).cast(),
+        (sql + byteOffset).cast(),
         length,
         prepFlag,
         stmtOut,
@@ -335,7 +340,7 @@ final class FfiStatementCompiler extends RawStatementCompiler {
 
       result = sqlite3_prepare_v2(
         database.db,
-        sql.elementAt(byteOffset).cast(),
+        (sql + byteOffset).cast(),
         length,
         stmtOut,
         pzTail,
@@ -398,6 +403,16 @@ final class FfiStatement extends RawSqliteStatement {
   @override
   int sqlite3_bind_parameter_count() {
     return bindings.sqlite3_bind_parameter_count(stmt);
+  }
+
+  @override
+  int sqlite3_stmt_isexplain() {
+    return bindings.sqlite3_stmt_isexplain(stmt);
+  }
+
+  @override
+  int sqlite3_stmt_readonly() {
+    return bindings.sqlite3_stmt_readonly(stmt);
   }
 
   @override
@@ -654,7 +669,7 @@ class _ValueList extends ListBase<FfiValue> {
 
   @override
   FfiValue operator [](int index) {
-    return FfiValue(args.elementAt(index).value);
+    return FfiValue(args[index]);
   }
 
   @override
@@ -674,7 +689,8 @@ extension on RawXFunc {
     return NativeCallable.isolateLocal((Pointer<sqlite3_context> ctx, int nArgs,
         Pointer<Pointer<sqlite3_value>> args) {
       return this(FfiContext(ctx), _ValueList(nArgs, args));
-    });
+    })
+      ..keepIsolateAlive = false;
   }
 }
 
@@ -685,7 +701,8 @@ extension on RawXFinal {
       final res = this(context);
       if (clean) context.freeContext();
       return res;
-    });
+    })
+      ..keepIsolateAlive = false;
   }
 }
 
@@ -705,7 +722,7 @@ extension on RawCollation {
         return this(dartA, dartB);
       },
       exceptionalReturn: 0,
-    );
+    )..keepIsolateAlive = false;
   }
 }
 
@@ -721,7 +738,7 @@ extension on RawUpdateHook {
         // happy.
         return _returnsVoid();
       },
-    );
+    )..keepIsolateAlive = false;
   }
 
   static void _returnsVoid() {}

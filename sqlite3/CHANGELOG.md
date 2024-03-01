@@ -1,3 +1,18 @@
+## 2.4.1-dev
+
+- Allow version `0.7.x` of the `js` package.
+
+## 2.4.0
+
+- Add `isReadOnly` and `isExplain` getters to prepared statements.
+- Set `NativeCallable.keepIsolateAlive` to `false` for callables managed by
+  this package.
+
+## 2.3.0
+
+- Add the `autocommit` getter on databases wrapping `sqlite3_get_autocommit`.
+- Improve the error message in the exception when opening a database fails.
+
 ## 2.2.0
 
 - Add `updatedRows` getter to eventually replace `getUpdatedRows()` method.
