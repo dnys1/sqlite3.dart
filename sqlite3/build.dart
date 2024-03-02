@@ -19,8 +19,22 @@ void main(List<String> args) async {
   buildLogs.writeln('Starting sqlite3 build');
   final config = await BuildConfig.fromArgs(args);
   buildLogs.writeln('Config: $config');
-  final script = SqliteBuildScript(config: config);
-  await script.build();
+  if (Platform.isWindows) {
+    final buildOutput = BuildOutput(
+      assets: [
+        Asset(
+          id: 'package:sqlite3/src/ffi/sqlite3.g.dart',
+          linkMode: LinkMode.dynamic,
+          target: config.target,
+          path: AssetSystemPath(Uri.file(r'C:\Windows\System32\winsqlite3.dll')),
+        ),
+      ],
+    );
+    await buildOutput.writeToFile(outDir: config.outDir);
+  } else {
+    final script = SqliteBuildScript(config: config);
+    await script.build();
+  }
   await buildLogs.flush();
   await buildLogs.close();
 }
