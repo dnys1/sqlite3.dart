@@ -16,27 +16,36 @@ final IOSink buildLogs = () {
 }();
 
 void main(List<String> args) async {
-  buildLogs.writeln('Starting sqlite3 build');
-  final config = await BuildConfig.fromArgs(args);
-  buildLogs.writeln('Config: $config');
-  if (Platform.isWindows) {
-    final buildOutput = BuildOutput(
-      assets: [
-        Asset(
-          id: 'package:sqlite3/src/ffi/sqlite3.g.dart',
-          linkMode: LinkMode.dynamic,
-          target: config.target,
-          path: AssetSystemPath(Uri.file(r'C:\Windows\System32\winsqlite3.dll')),
-        ),
-      ],
-    );
-    await buildOutput.writeToFile(outDir: config.outDir);
-  } else {
-    final script = SqliteBuildScript(config: config);
-    await script.build();
+  try {
+    await build(args, (config, output) async {
+      buildLogs.writeln('Starting sqlite3 build');
+      buildLogs.writeln('Config: $config');
+      if (Platform.isWindows) {
+        output.addAsset(
+          NativeCodeAsset(
+            package: config.packageName,
+            name: 'src/ffi/sqlite3.g.dart',
+            linkMode: DynamicLoadingSystem(
+              Uri.file(r'C:\Windows\System32\winsqlite3.dll'),
+            ),
+            os: config.targetOS,
+            architecture: config.targetArchitecture,
+          ),
+        );
+        return;
+      } else {
+        final script = SqliteBuildScript(config: config);
+        await script.build();
+      }
+    });
+  } on Object catch (e, st) {
+    buildLogs.writeln('Error: $e');
+    buildLogs.writeln('Stack Trace: $st');
+    rethrow;
+  } finally {
+    await buildLogs.flush();
+    await buildLogs.close();
   }
-  await buildLogs.flush();
-  await buildLogs.close();
 }
 
 enum SqliteSource {
@@ -96,8 +105,11 @@ class SqliteBuildScript {
   final Directory outDir;
 
   SqliteBuildScript({required this.config})
-      : options = SqliteBuildOptions.fromConfig(config.config),
-        outDir = Directory.fromUri(config.outDir) {
+      : options = SqliteBuildOptions(
+          source: SqliteSource.defaultSource,
+          downloadUrl: null,
+        ),
+        outDir = Directory.fromUri(config.outputDirectory) {
     logger.onRecord.listen(buildLogs.writeln);
   }
 
@@ -119,12 +131,11 @@ class SqliteBuildScript {
     );
 
     logger.info('Writing output: $output');
-    await output.writeToFile(outDir: config.outDir);
   }
 
   Stream<List<int>> _extractVendoredSqlite() {
     final source = config.packageRoot.resolve('assets/sqlite3.c.gz');
-    output.dependencies.dependencies.add(source);
+    output.addDependency(source);
 
     return File(source.toFilePath()).openRead().transform(gzip.decoder);
   }
@@ -145,7 +156,7 @@ class SqliteBuildScript {
     };
 
     // Extract source code into an intermediate file
-    final sqlite3DotC = config.outDir.resolve('sqlite3.c');
+    final sqlite3DotC = config.outputDirectory.resolve('sqlite3.c');
     final writingToSqlite3DotC = File(sqlite3DotC.toFilePath()).openWrite();
     await writingToSqlite3DotC.addStream(sourceCode);
     await writingToSqlite3DotC.flush();
@@ -154,7 +165,7 @@ class SqliteBuildScript {
 
     return CBuilder.library(
       name: 'dart_sqlite3',
-      assetId: 'package:sqlite3/src/ffi/sqlite3.g.dart',
+      assetName: 'src/ffi/sqlite3.g.dart',
       sources: [
         // CBuilder resolves sources relative to config.packageRoot.path, so
         // convert the intermediate source to that relative path.
@@ -188,7 +199,7 @@ class SqliteBuildScript {
         'SQLITE_OMIT_DECLTYPE': null,
         'SQLITE_OMIT_AUTHORIZATION': null,
 
-        if (config.targetOs == OS.linux || config.targetOs == OS.android) ...{
+        if (config.targetOS == OS.linux || config.targetOS == OS.android) ...{
           'SQLITE_USE_ALLOCA': null,
           'SQLITE_HAVE_ISNAN': null,
           'SQLITE_HAVE_LOCALTIME_R': null,
@@ -197,7 +208,7 @@ class SqliteBuildScript {
           'SQLITE_HAVE_STRCHRNUL': null,
         },
 
-        if (config.targetOs == OS.windows)
+        if (config.targetOS == OS.windows)
           // Actually export functions meant to be exported.
           'SQLITE_API': '__declspec(dllexport)',
         if (!config.dryRun && config.buildMode == BuildMode.debug) ...{
@@ -211,13 +222,14 @@ class SqliteBuildScript {
           'SQLITE_UNTESTABLE': null,
       },
       flags: _buildFlags,
+      dartBuildFiles: ['build.dart'],
     );
   }
 
   List<String> get _buildFlags {
     return [
       if (!config.dryRun && config.buildMode == BuildMode.release)
-        if (config.targetOs == OS.windows) '/O2' else '-O3',
+        if (config.targetOS == OS.windows) '/O2' else '-O3',
 
       // todo: Make this work on all platforms
       if (options.source == SqliteSource.system) '-lsqlite3',
