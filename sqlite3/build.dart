@@ -33,10 +33,12 @@ void main(List<String> args) async {
           ),
         );
         return;
-      } else {
-        final script = SqliteBuildScript(config: config);
-        await script.build();
       }
+      final script = SqliteBuildScript(
+        config: config,
+        output: output,
+      );
+      await script.build();
     });
   } on Object catch (e, st) {
     buildLogs.writeln('Error: $e');
@@ -100,12 +102,14 @@ class SqliteBuildScript {
   final SqliteBuildOptions options;
 
   final Logger logger = Logger('build.sqlite3');
-  final BuildOutput output = BuildOutput();
+  final BuildOutput output;
 
   final Directory outDir;
 
-  SqliteBuildScript({required this.config})
-      : options = SqliteBuildOptions(
+  SqliteBuildScript({
+    required this.config,
+    required this.output,
+  })  : options = SqliteBuildOptions(
           source: SqliteSource.defaultSource,
           downloadUrl: null,
         ),
