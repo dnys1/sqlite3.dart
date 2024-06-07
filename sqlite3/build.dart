@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_config/cli_config.dart';
 import 'package:logging/logging.dart';
 import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:native_toolchain_c/native_toolchain_c.dart';
-import 'package:path/path.dart' as p;
 
 final IOSink buildLogs = () {
   final logsFile = File.fromUri(
@@ -110,7 +108,7 @@ class SqliteBuildScript {
     required this.config,
     required this.output,
   })  : options = SqliteBuildOptions(
-          source: SqliteSource.defaultSource,
+          source: SqliteSource.vendored,
           downloadUrl: null,
         ),
         outDir = Directory.fromUri(config.outputDirectory) {
@@ -137,47 +135,12 @@ class SqliteBuildScript {
     logger.info('Writing output: $output');
   }
 
-  Stream<List<int>> _extractVendoredSqlite() {
-    final source = config.packageRoot.resolve('assets/sqlite3.c.gz');
-    output.addDependency(source);
-
-    return File(source.toFilePath()).openRead().transform(gzip.decoder);
-  }
-
-  Stream<List<int>> _downloadSqlite() {
-    throw UnimplementedError();
-  }
-
-  Stream<List<int>> _emptySourceForSystem() async* {
-    yield utf8.encode('#include <sqlite3.h>\n');
-  }
-
   Future<CBuilder> _compileSqlite() async {
-    final sourceCode = switch (options.source) {
-      SqliteSource.vendored => _extractVendoredSqlite(),
-      SqliteSource.url => _downloadSqlite(),
-      SqliteSource.system => _emptySourceForSystem(),
-    };
-
-    // Extract source code into an intermediate file
-    final sqlite3DotC = config.outputDirectory.resolve('sqlite3.c');
-    final writingToSqlite3DotC = File(sqlite3DotC.toFilePath()).openWrite();
-    await writingToSqlite3DotC.addStream(sourceCode);
-    await writingToSqlite3DotC.flush();
-    await writingToSqlite3DotC.close();
-    logger.info('Wrote sqlite3.c to ${sqlite3DotC.path}');
-
     return CBuilder.library(
       name: 'dart_sqlite3',
       assetName: 'src/ffi/sqlite3.g.dart',
       sources: [
-        // CBuilder resolves sources relative to config.packageRoot.path, so
-        // convert the intermediate source to that relative path.
-        p
-            .toUri(
-              p.relative(sqlite3DotC.path, from: config.packageRoot.path),
-            )
-            .toString(),
+        'assets/sqlite3.c',
       ],
       defines: {
         // Disable deprecated features
