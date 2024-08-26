@@ -20,7 +20,10 @@ For a more complete example on how to use this library, see the [example](https:
 
 You can use this library on any platform where you can obtain a `DynamicLibrary` with symbols
 from `sqlite3`.
-In addition, this package experimentally supports the web through WebAssembly.
+In addition, this package supports running on the web by accessing a sqlite3
+build compiled to WebAssembly.
+Web support is only official supported for `dartdevc` and `dart2js`. Support
+for `dart2wasm` [is experimental and incomplete](https://github.com/simolus3/sqlite3.dart/issues/230).
 
 Here's how to use this library on the most popular platforms:
 
@@ -90,6 +93,10 @@ On the web (but only on the web), `BigInt` is supported as well.
 This package experimentally supports being used on the web with a bit of setup.
 The web version binds to a custom version of sqlite3 compiled to WebAssembly without
 Emscripten or any JavaScript glue code.
+
+Please note that stable web support for `package:sqlite3` is restricted to Dart
+being compiled to JavaScript. Support for `dart2wasm` is experimental. The API
+is identical, but the implementation [is severly limited](https://github.com/simolus3/sqlite3.dart/issues/230).
 
 ### Setup
 
@@ -168,7 +175,7 @@ With wasi in `/usr/share/wasi-sysroot` and the default clang compiler having the
 required builtins, you can setup the build with:
 
 ```
-cmake -S assets/wasm -B .dart_tool/sqlite3_build --toolchain toolchain.cmake
+cmake -S assets/wasm -B .dart_tool/sqlite3_build
 ```
 
 ##### macOS
@@ -177,19 +184,19 @@ On macOS, I'm installing `cmake`, `llvm` and `binaryen` through Homebrew. Afterw
 wasi sysroot and the compiler runtimes from the Wasi SDK project:
 
 ```
-curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz | \
-  tar x -zf - -C /opt/homebrew/opt/llvm/lib/clang/17*
+curl -sL https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-22/libclang_rt.builtins-wasm32-wasi-22.0.tar.gz | \
+  tar x -zf - -C /opt/homebrew/opt/llvm/lib/clang/18*
 
-curl -sS -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sysroot-20.0.tar.gz | \
+curl -sS -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-22/wasi-sysroot-22.0.tar.gz | \
   sudo tar x -zf - -C /opt
 ```
 
-Replace `clang/17` with the correct directory if you're using a different version.
+Replace `clang/18` with the correct directory if you're using a different version.
 
 Then, set up the build with
 
 ```
-cmake -Dwasi_sysroot=/opt/wasi-sysroot -Dclang=/opt/homebrew/opt/llvm/bin/clang -S assets/wasm -B .dart_tool/sqlite3_build --toolchain toolchain.cmake
+cmake -Dwasi_sysroot=/opt/wasi-sysroot -Dclang=/opt/homebrew/opt/llvm/bin/clang -S assets/wasm -B .dart_tool/sqlite3_build
 ```
 
 #### Building
@@ -203,3 +210,19 @@ cmake --build .dart_tool/sqlite3_build/ -t output -j
 The `output` target copies `sqlite3.wasm` and `sqlite3.debug.wasm` to `example/web`.
 
 (Of course, you can also run the build in any other directory than `.dart_tool/sqite3_build` if you want to).
+
+### Customizing the WASM module
+
+The build scripts in this repository, which are also used for the default distribution of `sqlite3.wasm`
+attached to releases, are designed to mirror the options used by `sqlite3_flutter_libs`.
+If you want to use different options, or include custom extensions in the WASM module, you can customize
+the build setup.
+
+To use regular sqlite3 sources with different compile-time options, alter `assets/wasm/sqlite_cfg.h` and
+re-run the build as described in [compiling](#compiling).
+Including additional extensions written in C is possible by adapting the `CMakeLists.txt` in
+`assets/wasm`.
+
+A simple example demonstrating how to include Rust-based extensions is included in `example/custom_wasm_build`.
+The readme in that directory explains the build process in detail, but you still need the WASI/Clang toolchains
+described in the [setup section](#linux).

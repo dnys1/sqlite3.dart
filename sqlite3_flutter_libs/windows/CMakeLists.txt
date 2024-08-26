@@ -29,13 +29,13 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   # We can't really ask users to use a cmake that recent, so there's this if here.
   FetchContent_Declare(
     sqlite3
-    URL https://sqlite.org/2024/sqlite-autoconf-3450100.tar.gz
+    URL https://sqlite.org/2024/sqlite-autoconf-3460000.tar.gz
     DOWNLOAD_EXTRACT_TIMESTAMP NEW
   )
 else()
   FetchContent_Declare(
     sqlite3
-    URL https://sqlite.org/2024/sqlite-autoconf-3450100.tar.gz
+    URL https://sqlite.org/2024/sqlite-autoconf-3460000.tar.gz
   )
 endif()
 FetchContent_MakeAvailable(sqlite3)
@@ -47,6 +47,7 @@ target_compile_options(sqlite3 PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O2>" "/w")
 
 # Note: Keep in sync with https://github.com/simolus3/sqlite-native-libraries/blob/master/sqlite3-native-library/cpp/CMakeLists.txt
 target_compile_definitions(sqlite3 PRIVATE
+  SQLITE_ENABLE_DBSTAT_VTAB
   SQLITE_ENABLE_FTS5
   SQLITE_ENABLE_RTREE
   SQLITE_DQS=0
@@ -57,8 +58,6 @@ target_compile_definitions(sqlite3 PRIVATE
   SQLITE_OMIT_AUTHORIZATION
   SQLITE_OMIT_DECLTYPE
   SQLITE_OMIT_DEPRECATED
-  SQLITE_OMIT_GET_TABLE
-  SQLITE_OMIT_LOAD_EXTENSION
   SQLITE_OMIT_PROGRESS_CALLBACK
   SQLITE_OMIT_SHARED_CACHE
   SQLITE_OMIT_TCL_VARIABLE

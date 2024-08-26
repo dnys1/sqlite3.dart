@@ -1,33 +1,30 @@
-import 'dart:html';
+import 'dart:js_interop';
 
-import 'package:js/js.dart';
-import 'package:js/js_util.dart';
 import 'package:sqlite3/wasm.dart';
+import 'package:web/web.dart' as web;
 
 @JS()
 external bool get crossOriginIsolated;
 
 void main() {
   print('worker main');
-  final self = DedicatedWorkerGlobalScope.instance;
+  final self = (globalContext as web.DedicatedWorkerGlobalScope);
 
   if (!WasmVfs.supportsAtomicsAndSharedMemory) {
     throw UnsupportedError(
         'Missing support for Atomics or SharedArrayBuffer! Isolated: $crossOriginIsolated');
   }
 
-  self.onMessage.listen((event) async {
-    // We're not calling .data because we don't want the result to be Dartified,
-    // we want to keep the anonymous JS object.
-    final data = getProperty<Object>(event, 'data');
+  Future<void> handleEvent(web.MessageEvent event) async {
+    final data = event.data;
 
-    if (data == 'start') {
+    if (data.equals('start'.toJS).toDart) {
       final options = WasmVfs.createOptions();
-      final worker = Worker(''); // Clone this worker
+      final worker = web.Worker(''.toJS); // Clone this worker
       worker.postMessage(options);
 
       // Now, wait for the worker to report that it has been initialized.
-      await worker.onMessage.first;
+      await web.EventStreamProviders.messageEvent.forTarget(worker).first;
 
       final sqlite3 =
           await WasmSqlite3.loadFromUrl(Uri.parse('sqlite3.debug.wasm'));
@@ -48,8 +45,12 @@ void main() {
 
       final worker = await VfsWorker.create(message);
 
-      self.postMessage(true);
+      self.postMessage(true.toJS);
       await worker.start();
     }
-  });
+  }
+
+  self.onmessage = (web.MessageEvent event) {
+    handleEvent(event);
+  }.toJS;
 }

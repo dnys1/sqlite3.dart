@@ -1,3 +1,16 @@
+## 0.6.4
+
+- Fix compilation on Android by upgrading `compileSdk` version.
+
+## 0.6.3
+
+- Enable extension loading on Windows and Linux to match the compile options
+  used on other platforms.
+
+## 0.6.2
+
+- Update SQLCipher to `4.5.7`.
+
 ## 0.6.1
 
 - Update SQLCipher to `4.5.6`.

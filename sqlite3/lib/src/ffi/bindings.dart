@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import '../constants.dart';
 import '../functions.dart';
 import '../implementation/bindings.dart';
@@ -284,10 +286,13 @@ final class FfiDatabase extends RawSqliteDatabase {
 
   static Pointer<NativeFunction<Void Function(Pointer<Void>)>> _xDestroy(
       List<NativeCallable> callables) {
-    void destroy(Pointer<Void> _) {
+    int destroy(Pointer<Void> _) {
       for (final callable in callables) {
         callable.close();
       }
+
+      // TODO: Remove and change to void after Dart 3.5 or https://github.com/dart-lang/sdk/issues/56064
+      return 0;
     }
 
     final callable =
@@ -362,6 +367,9 @@ final class FfiStatement extends RawSqliteStatement {
   final List<Pointer> _allocatedArguments = [];
 
   FfiStatement(this.database, this.stmt);
+
+  @visibleForTesting
+  List<Pointer> get allocatedArguments => _allocatedArguments;
 
   @override
   void deallocateArguments() {
@@ -698,9 +706,8 @@ extension on RawXFinal {
   NativeCallable<_XFinal> toNative(bool clean) {
     return NativeCallable.isolateLocal((Pointer<sqlite3_context> ctx) {
       final context = FfiContext(ctx);
-      final res = this(context);
+      this(context);
       if (clean) context.freeContext();
-      return res;
     })
       ..keepIsolateAlive = false;
   }
@@ -734,12 +741,9 @@ extension on RawUpdateHook {
         final tableName = table.readString();
         this(kind, tableName, rowid);
 
-        // This closure needs to return `void` exactly to make the FFI analyzer
-        // happy.
-        return _returnsVoid();
+        // TODO: Remove and change to void after Dart 3.5 or https://github.com/dart-lang/sdk/issues/56064
+        return 0;
       },
     )..keepIsolateAlive = false;
   }
-
-  static void _returnsVoid() {}
 }

@@ -1,66 +1,74 @@
 import 'dart:async';
-
-import 'package:js/js.dart';
-import 'package:js/js_util.dart';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 @JS('BigInt')
-external Object _bigInt(Object s);
+external JSBigInt _bigInt(JSAny? s);
 
 @JS('Number')
-external int _number(Object obj);
+external JSNumber _number(JSAny? obj);
 
-@JS('self')
-external JsContext get self;
+extension type WrappedJSAny._(JSAny _) implements JSAny {
+  external static JSArray<JSAny?> keys(JSObject o);
 
-@JS()
-@staticInterop
-class JsContext {}
+  @JS('toString')
+  external JSString _toString();
+}
 
-class JsBigInt {
-  /// The BigInt literal as a raw JS value.
-  final Object _jsBigInt;
+@JS('Object')
+extension type WrappedJSObject._(JSObject _) implements JSObject {
+  external static JSArray<JSAny?> keys(JSObject o);
+}
 
-  JsBigInt(this._jsBigInt);
-
-  factory JsBigInt.parse(String s) => JsBigInt(_bigInt(s));
-  factory JsBigInt.fromInt(int i) => JsBigInt(_bigInt(i));
+extension type JsBigInt(JSBigInt _jsBigInt) implements JSBigInt {
+  factory JsBigInt.parse(String s) => JsBigInt(_bigInt(s.toJS));
+  factory JsBigInt.fromInt(int i) => JsBigInt(_bigInt(i.toJS));
   factory JsBigInt.fromBigInt(BigInt i) => JsBigInt.parse(i.toString());
 
-  int get asDartInt => _number(_jsBigInt);
+  int get asDartInt => _number(_jsBigInt).toDartInt;
 
-  BigInt get asDartBigInt => BigInt.parse(toString());
+  BigInt get asDartBigInt => BigInt.parse(jsToString());
 
-  Object get jsObject => _jsBigInt;
+  JSBigInt get jsObject => _jsBigInt;
 
   bool get isSafeInteger {
     const maxSafeInteger = 9007199254740992;
     const minSafeInteger = -maxSafeInteger;
 
-    return lessThanOrEqual<Object>(minSafeInteger, _jsBigInt) &&
-        lessThanOrEqual<Object>(_jsBigInt, maxSafeInteger);
+    return minSafeInteger.toJS.lessThanOrEqualTo(_jsBigInt).toDart &&
+        _jsBigInt.lessThanOrEqualTo(maxSafeInteger.toJS).toDart;
   }
 
   Object toDart() {
     return isSafeInteger ? asDartInt : asDartBigInt;
   }
 
-  @override
-  String toString() {
-    return callMethod(_jsBigInt, 'toString', const []);
+  String jsToString() {
+    return (_jsBigInt as WrappedJSAny)._toString().toDart;
   }
 }
 
+extension type IteratorResult<T extends JSAny?>(JSObject _)
+    implements JSObject {
+  external JSBoolean? get done;
+  external T? get value;
+}
+
+extension type AsyncIterator<T extends JSAny?>(JSObject _) implements JSObject {
+  external JSPromise<IteratorResult<T>> next();
+}
+
 @JS('Symbol.asyncIterator')
-external Object get _asyncIterator;
+external JSSymbol get _asyncIterator;
 
 /// Exposes the async iterable interface as a Dart stream.
 ///
 /// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols
-class AsyncJavaScriptIteratable<T> extends Stream<T> {
-  final Object _jsObject;
+class AsyncJavaScriptIteratable<T extends JSAny?> extends Stream<T> {
+  final JSObject _jsObject;
 
   AsyncJavaScriptIteratable(this._jsObject) {
-    if (!hasProperty(_jsObject, _asyncIterator)) {
+    if (!_jsObject.hasProperty(_asyncIterator).toDart) {
       throw ArgumentError('Target object does not implement the async iterable '
           'interface');
     }
@@ -69,22 +77,18 @@ class AsyncJavaScriptIteratable<T> extends Stream<T> {
   @override
   StreamSubscription<T> listen(void Function(T event)? onData,
       {Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    final iteratorFn = getProperty<Object>(_jsObject, _asyncIterator);
-    final iterator =
-        callMethod<Object Function()>(iteratorFn, 'bind', [_jsObject])();
-
+    final iterator = _jsObject.callMethod<AsyncIterator<T>>(_asyncIterator);
     final controller = StreamController<T>(sync: true);
-    Object? currentlyPendingPromise;
+    JSPromise<IteratorResult<T>>? currentlyPendingPromise;
 
     void fetchNext() {
       assert(currentlyPendingPromise == null);
-      final promise =
-          currentlyPendingPromise = callMethod<Object>(iterator, 'next', []);
+      final promise = currentlyPendingPromise = iterator.next();
 
-      promiseToFuture<Object>(promise).then(
+      promise.toDart.then(
         (result) {
-          final done = getProperty<bool?>(result, 'done') ?? false;
-          final value = getProperty<Object?>(result, 'value');
+          final done = result.done?.toDart ?? false;
+          final value = result.value;
 
           if (done) {
             controller.close();

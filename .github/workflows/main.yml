@@ -19,7 +19,7 @@ jobs:
       SQLITE_VERSION: "3420000"
 
     steps:
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: cache_sqlite_build
       with:
         path: sqlite/out
@@ -70,7 +70,7 @@ jobs:
         cp sqlite3.h ../out
         cp sqlite3ext.h ../out
     - name: Upload built sqlite3 binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sqlite3-${{ runner.os }}
         path: sqlite/out
@@ -87,11 +87,11 @@ jobs:
     name: Analyze on Dart ${{ matrix.dart }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: dart-lang/setup-dart@v1
       with:
         sdk: ${{ matrix.dart }}
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       with:
         path: "${{ env.PUB_CACHE }}"
         key: dart-dependencies-${{ matrix.dart }}-${{ runner.os }}
@@ -120,24 +120,21 @@ jobs:
     needs: [analyze]
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-11, macos-12]
-#        dart: [stable, dev]
-        # Testing on Dart dev is currently disabled because it crashes on macOS,
-        # see https://github.com/dart-lang/sdk/issues/53928
-        dart: [stable]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        dart: [stable, dev]
 
     name: Unit tests with Dart ${{ matrix.dart }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: dart-lang/setup-dart@v1
       with:
         sdk: ${{ matrix.dart }}
 
     - name: Download compiled sqlite3
       if: runner.os == 'Linux' || runner.os == 'Windows' || runner.os == 'macOS'
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: sqlite3-${{ runner.os }}
         path: sqlite/out
@@ -163,7 +160,7 @@ jobs:
         Resolve-Path -Path "sqlite/out" >> $env:GITHUB_PATH
         "INCLUDE=" + $env:INCLUDE + ";" + (Resolve-Path -Path "sqlite/out") >> $env:GITHUB_EN
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       with:
         path: "${{ env.PUB_CACHE }}"
         key: dart-dependencies-${{ matrix.dart }}-${{ runner.os }}
@@ -187,7 +184,7 @@ jobs:
 
     - name: Web tests
       run: |
-        curl https://storage.googleapis.com/simon-public-euw3/assets/sqlite3/wasm/2.3.0/sqlite3.wasm -o example/web/sqlite3.wasm
+        curl https://storage.googleapis.com/simon-public-euw3/assets/sqlite3/wasm/2.4.6/sqlite3.wasm -o example/web/sqlite3.wasm
         dart test -P web -r expanded
       # If browsers behave differently on different platforms, surely that's not our fault...
       # So, only run browser tests on Linux to be faster.
@@ -207,7 +204,7 @@ jobs:
 #          - flutter_libs
 #          - sqlcipher_flutter
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - uses: subosito/flutter-action@v2
 #        with:
 #          channel: dev
@@ -226,7 +223,7 @@ jobs:
     needs: [test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2.4.0
       - name: Setup Flutter
         run: |
@@ -254,10 +251,10 @@ jobs:
 
       - name: Start simulator
         run: |
-          IPHONE12=$(xcrun xctrace list devices  2>&1 | grep -m 1 "iPhone 12 Pro" | awk -F'[()]' '{print $4}')
+          IPHONE12=$(xcrun xctrace list devices  2>&1 | grep -m 1 "iPhone 14 Pro" | awk -F'[()]' '{print $4}')
           xcrun simctl boot $IPHONE12
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2.4.0
 
       - name: Flutter version
@@ -276,7 +273,7 @@ jobs:
     needs: [test]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2.4.0
       - name: Setup Flutter
         run: |

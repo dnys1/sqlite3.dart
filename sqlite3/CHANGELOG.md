@@ -1,6 +1,38 @@
-## 2.4.1-dev
+## 2.4.6
+
+- WebAssembly: Call `_initialize` function of sqlite3 module if one is present.
+- Support version 1.0.0 of `package:web`.
+
+## 2.4.5
+
+- Fix a bug in the OPFS-locks implementation causing a deadlock when the `xSleep`
+  VFS call is issued.
+- Fix selecting large integers (being represented as a `BigInt` in Dart)
+  not working when compiled with dartdevc.
+
+## 2.4.4
+
+- Add a temporary workaround for [a Dart bug](https://github.com/dart-lang/sdk/issues/56064)
+  causing spurious exceptions when databases are closed and a debugger is attached.
+
+## 2.4.3
+
+- Migrate away from legacy web APIs: `dart:html`, `dart:js`, `dart:indexeddb`
+  and `package:js` are no longer imported from this package.
+- Experimentally support being compiled to WebAssembly. Strong caveats apply,
+  please check [#230](https://github.com/simolus3/sqlite3.dart/issues/230)
+  before relying on this!
+
+## 2.4.2
+
+- Fix string and blob arguments to prepared statements never being
+  deallocated ([#225](https://github.com/simolus3/sqlite3.dart/issues/225)).
+
+## 2.4.1+1
 
 - Allow version `0.7.x` of the `js` package.
+- Reduce size of `sqlite3.wasm` bundle by removing symbols not referenced in
+  Dart.
 
 ## 2.4.0
 

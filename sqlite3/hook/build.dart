@@ -7,7 +7,7 @@ import 'package:native_toolchain_c/native_toolchain_c.dart';
 
 final IOSink buildLogs = () {
   final logsFile = File.fromUri(
-    Platform.script.resolve('.dart_tool/build.log'),
+    Platform.script.resolve('../.dart_tool/build.log'),
   );
   logsFile.createSync(recursive: true);
   return logsFile.openWrite(mode: FileMode.write);
@@ -127,8 +127,8 @@ class SqliteBuildScript {
 
     logger.info('Running builder');
     await builder.run(
-      buildConfig: config,
-      buildOutput: output,
+      config: config,
+      output: output,
       logger: logger,
     );
 
